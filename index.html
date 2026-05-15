@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClaudeAgent — Airdrop Registration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1a1410; --bg-card: #221c16; --bg-card-active: #2a221a;
+      --border: #3d2f22; --border-active: #c4733a; --accent: #c4733a;
+      --accent-dim: rgba(196,115,58,0.2); --btn: #b5633a; --btn-hover: #c4733a;
+      --text: #e8d5c0; --text-sec: #8a7060; --text-muted: #5a4535;
+      --mono: 'Space Mono', monospace; --display: 'Syne', sans-serif;
+    }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: var(--mono); }
+    body {
+      background-image: radial-gradient(ellipse at 20% 40%, rgba(196,115,58,0.05) 0%, transparent 55%), radial-gradient(ellipse at 80% 10%, rgba(196,115,58,0.03) 0%, transparent 45%);
+      padding: 32px 16px 80px; display: flex; justify-content: center;
+    }
+    .container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
+
+    .header { text-align: center; padding: 20px 0 12px; animation: fadeUp 0.6s ease both; }
+    .logo { font-family: var(--display); font-size: 24px; font-weight: 800; letter-spacing: 5px; color: var(--accent); text-shadow: 0 0 40px rgba(196,115,58,0.35); }
+    .tagline { font-size: 9px; letter-spacing: 4px; color: var(--text-muted); margin-top: 5px; }
+
+    .card { border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); padding: 20px 18px 20px 14px; display: flex; gap: 14px; align-items: flex-start; transition: border-color 0.3s, background 0.3s, opacity 0.3s; animation: fadeUp 0.6s ease both; }
+    .card:nth-child(2){animation-delay:.08s} .card:nth-child(3){animation-delay:.16s} .card:nth-child(4){animation-delay:.24s} .card:nth-child(5){animation-delay:.32s}
+    .card.active { border-color: var(--border-active); background: var(--bg-card-active); }
+    .card.done { border-color: rgba(196,115,58,0.3); }
+    .card.locked { opacity: 0.45; pointer-events: none; }
+
+    .step-num { font-family: var(--display); font-size: 34px; font-weight: 800; color: var(--text-muted); line-height: 1; min-width: 30px; padding-top: 2px; transition: color 0.3s; }
+    .card.active .step-num { color: var(--accent); }
+    .card.done .step-num { color: rgba(196,115,58,0.35); }
+    .card-body { flex: 1; display: flex; flex-direction: column; gap: 11px; }
+    .card-label { font-size: 10px; letter-spacing: 3px; color: var(--accent); font-weight: 700; }
+    .card.locked .card-label { color: var(--text-muted); }
+    .hint { font-size: 11px; color: var(--text-sec); line-height: 1.65; }
+
+    .connect-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--btn); color: #1a1410; border: none; border-radius: 8px; padding: 13px 20px; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+    .connect-btn:hover { background: var(--btn-hover); transform: translateY(-1px); }
+    .connect-btn.done { background: var(--accent-dim); color: var(--accent); cursor: default; }
+    .connect-btn.done:hover { background: var(--accent-dim); transform: none; }
+
+    .task-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .task-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 8px; cursor: pointer; color: var(--text-sec); transition: border-color 0.2s, background 0.2s, transform 0.1s; }
+    .task-btn:hover { border-color: var(--accent); background: rgba(196,115,58,0.08); transform: translateY(-1px); }
+    .task-btn.done { border-color: rgba(196,115,58,0.4); background: rgba(196,115,58,0.1); color: var(--accent); }
+    .task-label { font-size: 9px; letter-spacing: 2px; font-weight: 700; }
+
+    .wallet-row { display: flex; gap: 8px; }
+    .wallet-input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 13px; font-family: var(--mono); font-size: 12px; color: var(--text); outline: none; transition: border-color 0.2s; }
+    .wallet-input:focus { border-color: var(--accent); }
+    .wallet-input:disabled { opacity: 0.4; }
+    .wallet-input::placeholder { color: var(--text-muted); }
+    .claim-btn { background: var(--btn); color: #1a1410; border: none; border-radius: 8px; padding: 12px 16px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+    .claim-btn:hover:not(:disabled) { background: var(--btn-hover); }
+    .claim-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .invite-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+    .invite-label { font-size: 9px; letter-spacing: 2px; color: var(--text-muted); white-space: nowrap; }
+    .invite-input { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 13px; font-family: var(--mono); font-size: 12px; color: var(--text); outline: none; width: 140px; transition: border-color 0.2s; }
+    .invite-input:focus { border-color: var(--accent); }
+    .invite-input:disabled { opacity: 0.4; }
+    .invite-input::placeholder { color: var(--text-muted); }
+
+    .error-msg { font-size: 11px; color: #e05555; background: rgba(224,85,85,0.1); border: 1px solid rgba(224,85,85,0.2); border-radius: 6px; padding: 10px 12px; display: none; margin-top: 6px; }
+    .error-msg.show { display: block; }
+
+    /* SUCCESS */
+    .success-card { border-radius: 12px; border: 1px solid rgba(196,115,58,0.35); background: rgba(196,115,58,0.06); padding: 20px; display: none; flex-direction: column; gap: 16px; animation: fadeUp 0.5s ease both; }
+    .success-card.show { display: flex; }
+    .success-title { font-family: var(--display); font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: 2px; }
+    .success-sub { font-size: 11px; color: var(--text-sec); line-height: 1.7; }
+
+    .invite-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .invite-box-label { font-size: 9px; letter-spacing: 3px; color: var(--text-muted); font-weight: 700; }
+    .invite-link-row { display: flex; gap: 8px; align-items: center; }
+    .invite-link-text { flex: 1; background: rgba(196,115,58,0.08); border: 1px solid rgba(196,115,58,0.2); border-radius: 6px; padding: 10px 12px; font-family: var(--mono); font-size: 10px; color: var(--accent); word-break: break-all; line-height: 1.4; }
+    .copy-btn { background: var(--btn); color: #1a1410; border: none; border-radius: 6px; padding: 10px 14px; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1px; cursor: pointer; white-space: nowrap; transition: background 0.2s; flex-shrink: 0; }
+    .copy-btn:hover { background: var(--btn-hover); }
+    .copy-btn.copied { background: rgba(196,115,58,0.3); color: var(--accent); }
+
+    .invite-counter { display: flex; align-items: center; justify-content: space-between; }
+    .invite-counter-label { font-size: 10px; color: var(--text-sec); letter-spacing: 1px; }
+    .invite-count-num { font-family: var(--display); font-size: 28px; font-weight: 800; color: var(--accent); }
+
+    .invite-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
+    .invite-item { display: flex; align-items: center; justify-content: space-between; background: rgba(196,115,58,0.05); border: 1px solid rgba(196,115,58,0.1); border-radius: 6px; padding: 8px 12px; font-size: 10px; color: var(--text-sec); }
+    .invite-item-addr { font-family: var(--mono); color: var(--text-muted); }
+    .invite-item-date { color: var(--text-muted); font-size: 9px; }
+    .invite-list::-webkit-scrollbar { width: 4px; }
+    .invite-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .loading-txt { font-size: 10px; color: var(--text-muted); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    @media(max-width:400px) { .logo{font-size:24px} .connect-btn{font-size:11px;padding:11px 14px} }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo">CLAUDEAGENT</div>
+    <div class="tagline">AIRDROP REGISTRATION</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card active" id="card1">
+    <div class="step-num">1</div>
+    <div class="card-body">
+      <div class="card-label">CONNECT IDENTITY</div>
+      <div class="wallet-row">
+        <div style="position:relative;flex:1;">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-family:var(--mono);font-size:12px;">@</span>
+          <input class="wallet-input" id="xInput" type="text" placeholder="username" style="padding-left:26px;" oninput="checkXInput()" onkeydown="if(event.key==='Enter')connectX()" />
+        </div>
+        <button class="claim-btn" id="connectBtn" onclick="connectX()" disabled>CONFIRM</button>
+      </div>
+      <p class="hint" id="hint1">Enter your X username to continue.</p>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card locked" id="card2">
+    <div class="step-num">2</div>
+    <div class="card-body">
+      <div class="card-label">COMMUNITY TASKS</div>
+      <div class="task-grid">
+        <button class="task-btn" id="btn-notify" onclick="doTask('notify')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <span class="task-label" id="lbl-notify">NOTIFY</span>
+        </button>
+        <button class="task-btn" id="btn-rt" onclick="doTask('rt')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.77 15.67c-.292-.293-.767-.293-1.06 0l-2.22 2.22V7.65c0-2.068-1.683-3.75-3.75-3.75h-5.85c-.414 0-.75.336-.75.75s.336.75.75.75h5.85c1.24 0 2.25 1.01 2.25 2.25v10.24l-2.22-2.22c-.293-.293-.768-.293-1.06 0s-.294.768 0 1.06l3.5 3.5c.145.147.337.22.53.22s.383-.072.53-.22l3.5-3.5c.294-.292.294-.767 0-1.06zm-10.66 3.28H7.26c-1.24 0-2.25-1.01-2.25-2.25V6.46l2.22 2.22c.148.147.34.22.532.22s.384-.073.53-.22c.293-.293.293-.768 0-1.06l-3.5-3.5c-.293-.294-.768-.294-1.06 0l-3.5 3.5c-.294.292-.294.767 0 1.06s.767.293 1.06 0l2.22-2.22V16.7c0 2.068 1.683 3.75 3.75 3.75h5.85c.414 0 .75-.336.75-.75s-.337-.75-.75-.75z"/></svg>
+          <span class="task-label" id="lbl-rt">RT</span>
+        </button>
+        <button class="task-btn" id="btn-ref" onclick="doTask('ref')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+          <span class="task-label" id="lbl-ref">SHARE</span>
+        </button>
+      </div>
+      <p class="hint">Complete all three to unlock your invite.</p>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card locked" id="card3">
+    <div class="step-num">3</div>
+    <div class="card-body">
+      <div class="card-label">LINK WALLET</div>
+      <p class="hint">Drop your EVM address. Used to airdrop your spot.</p>
+      <div id="walletSection">
+        <div class="wallet-row">
+          <input class="wallet-input" id="walletInput" type="text" placeholder="0x..." disabled oninput="checkWallet()" />
+          <button class="claim-btn" id="claimBtn" onclick="doClaim()" disabled>CLAIM</button>
+        </div>
+        <div class="invite-row">
+          <span class="invite-label">INVITE CODE</span>
+          <input class="invite-input" id="inviteInput" type="text" placeholder="optional" disabled />
+        </div>
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card locked" id="card4">
+    <div class="step-num">4</div>
+    <div class="card-body">
+      <div class="card-label" id="label4">REGISTRATION LOCKED</div>
+      <p class="hint" id="hint4">Connect your X to begin.</p>
+    </div>
+  </div>
+
+  <!-- SUCCESS CARD -->
+  <div class="success-card" id="successCard">
+    <div class="success-title">REGISTRATION COMPLETE ✓</div>
+    <div class="success-sub">
+      Congratulations! You're on the list.<br>
+      Follow <strong style="color:var(--accent)">@claudeagentfun</strong> for airdrop updates.
+    </div>
+
+    <div class="invite-box">
+      <div class="invite-box-label">YOUR REFERRAL LINK</div>
+      <div class="invite-link-row">
+        <div class="invite-link-text" id="refLinkText">—</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyRef()">COPY</button>
+      </div>
+    </div>
+
+    <div class="invite-box">
+      <div class="invite-box-label">YOUR INVITES</div>
+      <div class="invite-counter">
+        <div class="invite-counter-label">People referred</div>
+        <div class="invite-count-num" id="inviteCount">—</div>
+      </div>
+      <div class="invite-list" id="inviteList">
+        <div class="loading-txt">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  const SUPABASE_URL = "https://eshjqcctiqwbgilschjy.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzaGpxY2N0aXF3YmdpbHNjaGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3ODA3NTAsImV4cCI6MjA5NDM1Njc1MH0.IcscG_sL2TM6BkFo6Xu0sj--sxJWKXMzCyKnlgJpR3g";
+  const TWEET_URL = "https://x.com/claudeagentfun/status/2055362611055595849";
+
+  const STORAGE_KEY = "claudeagent_reg";
+  const urlParams = new URLSearchParams(window.location.search);
+  const incomingRef = urlParams.get("ref") || "";
+  const state = { x: false, notify: false, rt: false, ref: false };
+
+  /* ── SUPABASE ── */
+  async function sbInsert(data) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/registrations`, {
+      method: "POST",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Insert failed"); }
+    return res.json();
+  }
+  async function sbSelect(filter) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/registrations?${filter}`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    });
+    if (!res.ok) throw new Error("Select failed");
+    return res.json();
+  }
+
+  /* ── ON LOAD: restore if already registered ── */
+  window.addEventListener("DOMContentLoaded", () => {
+    // Pre-fill invite if coming via ref link
+    if (incomingRef) document.getElementById("inviteInput").value = incomingRef;
+
+    // Check localStorage — if user already registered, show success directly
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const { refCode, wallet, xUsername } = JSON.parse(saved); if (xUsername) state.xUsername = xUsername;
+        if (refCode && wallet) {
+          // Skip all steps, show success immediately
+          document.getElementById("card1").className = "card done";
+          document.getElementById("card2").className = "card done";
+          document.getElementById("card3").className = "card done";
+          document.getElementById("card4").className = "card done";
+          document.getElementById("label4").textContent = "REGISTRATION COMPLETE";
+          document.getElementById("hint4").textContent = "You're on the list. Follow @claudeagentfun for airdrop updates.";
+          document.getElementById("walletSection").style.display = "none";
+          const base = window.location.origin + window.location.pathname;
+          document.getElementById("refLinkText").textContent = `${base}?ref=${refCode}`;
+          document.getElementById("successCard").classList.add("show");
+          loadInvites(refCode);
+          return;
+        }
+      }
+    } catch(e) {}
+  });
+
+  /* ── STEP 1 ── */
+  function checkXInput() {
+    const val = document.getElementById("xInput").value.trim().replace(/^@/, "");
+    document.getElementById("connectBtn").disabled = val.length < 2;
+  }
+
+  function connectX() {
+    const raw = document.getElementById("xInput").value.trim().replace(/^@/, "");
+    if (raw.length < 2) return;
+    state.x = true;
+    state.xUsername = raw;
+    document.getElementById("xInput").disabled = true;
+    const btn = document.getElementById("connectBtn");
+    btn.textContent = "CONFIRMED ✓";
+    btn.disabled = true;
+    btn.style.background = "rgba(196,115,58,0.25)";
+    btn.style.color = "var(--accent)";
+    document.getElementById("hint1").textContent = "@" + raw + " — identity confirmed.";
+    document.getElementById("card1").className = "card done";
+    document.getElementById("card2").className = "card active";
+  }
+
+  /* ── STEP 2 ── */
+  function doTask(type) {
+    if (type === "notify") window.open("https://x.com/claudeagentfun", "_blank");
+    else if (type === "rt") {
+      window.open("https://x.com/intent/retweet?tweet_id=2055362611055595849", "_blank");
+    }
+    else if (type === "ref") {
+      const quoteText = encodeURIComponent("Joining @claudeagentfun airdrop 🔥 Register here 👇");
+      window.open(`https://x.com/intent/tweet?text=${quoteText}&url=${encodeURIComponent(TWEET_URL)}`, "_blank");
+    }
+    state[type] = true;
+    document.getElementById("btn-" + type).classList.add("done");
+    document.getElementById("lbl-" + type).textContent = ({notify:"NOTIFY",rt:"RT",ref:"SHARE"}[type]) + " ✓";
+    if (state.notify && state.rt && state.ref && state.x) {
+      document.getElementById("card2").className = "card done";
+      document.getElementById("card3").className = "card active";
+      document.getElementById("walletInput").disabled = false;
+      document.getElementById("inviteInput").disabled = false;
+      if (incomingRef) document.getElementById("inviteInput").value = incomingRef;
+    }
+  }
+
+  /* ── STEP 3 ── */
+  function checkWallet() {
+    const v = document.getElementById("walletInput").value;
+    document.getElementById("claimBtn").disabled = !(v.startsWith("0x") && v.length >= 10);
+  }
+
+  function genCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
+
+  async function doClaim() {
+    const wallet = document.getElementById("walletInput").value.trim();
+    const inviteCode = document.getElementById("inviteInput").value.trim();
+    const btn = document.getElementById("claimBtn");
+    document.getElementById("errorMsg").classList.remove("show");
+
+    if (!wallet.startsWith("0x") || wallet.length < 10) {
+      showErr("Please enter a valid EVM address (0x...)"); return;
+    }
+
+    btn.textContent = "SAVING...";
+    btn.disabled = true;
+
+    const refCode = genCode();
+    try {
+      await sbInsert({ wallet, x_username: state.xUsername || null, invite_code: inviteCode || null, ref_code: refCode, referred_by: inviteCode || null });
+      // Save to localStorage so page refresh doesn't reset
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ refCode, wallet, xUsername: state.xUsername || null }));
+      showSuccess(refCode);
+    } catch(err) {
+      // If wallet already registered, try to fetch their existing ref code
+      if (err.message.includes("unique")) {
+        try {
+          const rows = await sbSelect(`wallet=eq.${encodeURIComponent(wallet)}&select=ref_code,wallet`);
+          if (rows.length > 0) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ refCode: rows[0].ref_code, wallet }));
+            showSuccess(rows[0].ref_code);
+            return;
+          }
+        } catch(e2) {}
+        showErr("This wallet is already registered.");
+      } else {
+        showErr("Something went wrong. Please try again.");
+      }
+      btn.textContent = "CLAIM";
+      btn.disabled = false;
+    }
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.classList.add("show");
+  }
+
+  function showSuccess(refCode) {
+    document.getElementById("walletSection").style.display = "none";
+    document.getElementById("card3").className = "card done";
+    document.getElementById("card4").className = "card done";
+    document.getElementById("label4").textContent = "REGISTRATION COMPLETE";
+    document.getElementById("hint4").textContent = "You're on the list. Follow @claudeagentfun for airdrop updates.";
+    const base = window.location.origin + window.location.pathname;
+    document.getElementById("refLinkText").textContent = `${base}?ref=${refCode}`;
+    document.getElementById("successCard").classList.add("show");
+    loadInvites(refCode);
+  }
+
+  /* ── INVITE COUNTER (auto-refresh 30s) ── */
+  async function loadInvites(refCode) {
+    try {
+      const rows = await sbSelect(`referred_by=eq.${refCode}&select=wallet,created_at`);
+      document.getElementById("inviteCount").textContent = rows.length;
+      const list = document.getElementById("inviteList");
+      if (!rows.length) {
+        list.innerHTML = `<div style="font-size:10px;color:var(--text-muted);padding:4px 0;">No referrals yet — share your link!</div>`;
+      } else {
+        list.innerHTML = rows.map(r => {
+          const addr = r.wallet.slice(0,6) + "..." + r.wallet.slice(-4);
+          const date = new Date(r.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+          return `<div class="invite-item"><span class="invite-item-addr">${addr}</span><span class="invite-item-date">${date}</span></div>`;
+        }).join("");
+      }
+      setTimeout(() => loadInvites(refCode), 30000);
+    } catch(e) {
+      document.getElementById("inviteList").innerHTML = `<div style="font-size:10px;color:var(--text-muted);">Could not load referrals.</div>`;
+    }
+  }
+
+  /* ── COPY ── */
+  function copyRef() {
+    const link = document.getElementById("refLinkText").textContent;
+    navigator.clipboard.writeText(link).then(() => {
+      const btn = document.getElementById("copyBtn");
+      btn.textContent = "COPIED ✓";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "COPY"; btn.classList.remove("copied"); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
